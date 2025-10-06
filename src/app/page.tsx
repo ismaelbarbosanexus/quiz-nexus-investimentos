@@ -141,7 +141,7 @@ const questions: Question[] = [
       "Quero entender antes de comprar.",
       "Já quero ativar o Nexus hoje."
     ],
-    bonus: 3
+    bonus: 1
   },
   {
     id: 13,
@@ -174,7 +174,7 @@ const questions: Question[] = [
       "Testar o sistema com o bônus.",
       "Falar com um consultor para iniciar."
     ],
-    bonus: 4
+    bonus: 2
   }
 ]
 
@@ -189,6 +189,15 @@ interface Metrics {
   satisfaction: number
 }
 
+interface SocialProof {
+  id: number
+  name: string
+  city: string
+  action: string
+  time: string
+  amount?: number
+}
+
 export default function NexusQuiz() {
   const [currentScreen, setCurrentScreen] = useState<'intro' | 'quiz' | 'final' | 'dashboard'>('intro')
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -196,7 +205,6 @@ export default function NexusQuiz() {
   const [showNotification, setShowNotification] = useState(false)
   const [lastBonus, setLastBonus] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
-  const [showDashboard, setShowDashboard] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [metrics, setMetrics] = useState<Metrics>({
     usersStarted: 2847,
@@ -208,6 +216,13 @@ export default function NexusQuiz() {
     newInvestors: 62,
     satisfaction: 97.8
   })
+  const [socialProofs, setSocialProofs] = useState<SocialProof[]>([
+    { id: 1, name: "Anderson", city: "Goiânia", action: "recebeu US$35", time: "há 2min" },
+    { id: 2, name: "Carla", city: "Recife", action: "lucrou US$97 em 4 dias", time: "há 5min" },
+    { id: 3, name: "João", city: "Manaus", action: "primeiro lucro hoje", time: "há 8min" },
+    { id: 4, name: "Bruna", city: "São Paulo", action: "PIX instantâneo confirmado", time: "há 12min" },
+    { id: 5, name: "Rafael", city: "Brasília", action: "ativou conta real", time: "há 15min" }
+  ])
 
   // Garantir hidratação correta
   useEffect(() => {
@@ -231,6 +246,38 @@ export default function NexusQuiz() {
     }, 3000)
 
     return () => clearInterval(interval)
+  }, [mounted])
+
+  // Atualizar provas sociais em tempo real
+  useEffect(() => {
+    if (!mounted) return
+
+    const names = ["Anderson", "Carla", "João", "Bruna", "Rafael", "Marina", "Pedro", "Ana", "Lucas", "Fernanda"]
+    const cities = ["São Paulo", "Rio de Janeiro", "Belo Horizonte", "Salvador", "Brasília", "Fortaleza", "Recife", "Porto Alegre", "Manaus", "Curitiba"]
+    const actions = [
+      "recebeu US$35",
+      "lucrou US$97 em 4 dias", 
+      "primeiro lucro hoje",
+      "PIX instantâneo confirmado",
+      "ativou conta real",
+      "sacou US$150",
+      "dobrou investimento",
+      "começou hoje"
+    ]
+
+    const socialInterval = setInterval(() => {
+      const newProof: SocialProof = {
+        id: Date.now(),
+        name: names[Math.floor(Math.random() * names.length)],
+        city: cities[Math.floor(Math.random() * cities.length)],
+        action: actions[Math.floor(Math.random() * actions.length)],
+        time: "agora"
+      }
+
+      setSocialProofs(prev => [newProof, ...prev.slice(0, 4)])
+    }, 8000)
+
+    return () => clearInterval(socialInterval)
   }, [mounted])
 
   const progress = ((currentQuestion + 1) / questions.length) * 100
@@ -399,10 +446,11 @@ export default function NexusQuiz() {
             <span className="text-[#00ff66] text-sm font-bold">ATIVIDADE AO VIVO</span>
           </div>
           <div className="space-y-2 max-h-32 overflow-y-auto">
-            <div className="text-xs text-gray-300 animate-pulse">🎉 Anderson, Goiânia - Recebeu US$35 há 2min</div>
-            <div className="text-xs text-gray-300 animate-pulse">💰 Carla, Recife - Lucrou US$97 em 4 dias</div>
-            <div className="text-xs text-gray-300 animate-pulse">🚀 João, Manaus - Primeiro lucro hoje!</div>
-            <div className="text-xs text-gray-300 animate-pulse">💸 Bruna, São Paulo - PIX instantâneo confirmado</div>
+            {socialProofs.map((proof) => (
+              <div key={proof.id} className="text-xs text-gray-300 animate-pulse">
+                🎉 {proof.name}, {proof.city} - {proof.action} {proof.time}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -433,7 +481,7 @@ export default function NexusQuiz() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-bold text-[#00e0ff]">Dashboard Nexus - Métricas em Tempo Real</h1>
             <button 
-              onClick={() => setShowDashboard(false)}
+              onClick={() => setCurrentScreen('intro')}
               className="bg-[#ff6600] px-4 py-2 rounded-lg hover:bg-[#ff8800] transition-colors"
             >
               Voltar ao Quiz
@@ -446,8 +494,10 @@ export default function NexusQuiz() {
                 <Users className="w-6 h-6 text-[#00e0ff]" />
                 <span className="text-gray-400">Usuários Iniciaram</span>
               </div>
-              <div className="text-2xl font-bold text-[#00ff66]">{metrics.usersStarted.toLocaleString()}</div>
-              <div className="text-xs text-gray-500">+57 nas últimas 5 min</div>
+              <div className="text-2xl font-bold text-[#00ff66]" suppressHydrationWarning>
+                {metrics.usersStarted.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-500">+{Math.floor(Math.random() * 15) + 10} nas últimas 5 min</div>
             </div>
 
             <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
@@ -455,7 +505,9 @@ export default function NexusQuiz() {
                 <CheckCircle className="w-6 h-6 text-[#00e0ff]" />
                 <span className="text-gray-400">Concluíram</span>
               </div>
-              <div className="text-2xl font-bold text-[#00ff66]">{metrics.usersCompleted.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-[#00ff66]" suppressHydrationWarning>
+                {metrics.usersCompleted.toLocaleString()}
+              </div>
               <div className="text-xs text-gray-500">Taxa: 82,8%</div>
             </div>
 
@@ -464,7 +516,9 @@ export default function NexusQuiz() {
                 <Target className="w-6 h-6 text-[#00e0ff]" />
                 <span className="text-gray-400">Checkout</span>
               </div>
-              <div className="text-2xl font-bold text-[#00ff66]">{metrics.usersCheckout.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-[#00ff66]" suppressHydrationWarning>
+                {metrics.usersCheckout.toLocaleString()}
+              </div>
               <div className="text-xs text-gray-500">46% dos participantes</div>
             </div>
 
@@ -473,7 +527,9 @@ export default function NexusQuiz() {
                 <DollarSign className="w-6 h-6 text-[#00e0ff]" />
                 <span className="text-gray-400">Compraram</span>
               </div>
-              <div className="text-2xl font-bold text-[#00ff66]">{metrics.usersPurchased.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-[#00ff66]" suppressHydrationWarning>
+                {metrics.usersPurchased.toLocaleString()}
+              </div>
               <div className="text-xs text-gray-500">Conversão: 20,1%</div>
             </div>
           </div>
@@ -484,7 +540,9 @@ export default function NexusQuiz() {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Bônus pagos hoje:</span>
-                  <span className="text-[#00ff66] font-bold">US${metrics.bonusPaid.toLocaleString()}</span>
+                  <span className="text-[#00ff66] font-bold" suppressHydrationWarning>
+                    US${metrics.bonusPaid.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Lucro médio (7 dias):</span>
@@ -538,11 +596,11 @@ export default function NexusQuiz() {
           <div className="bg-gray-900 p-6 rounded-xl border border-gray-800">
             <h3 className="text-lg font-bold text-[#ffd700] mb-4">💬 Prova Social - Feed Ao Vivo</h3>
             <div className="space-y-2 max-h-40 overflow-y-auto">
-              <div className="text-sm text-gray-300 animate-pulse">🎉 Anderson, de Goiânia, recebeu US$35 há 3 minutos.</div>
-              <div className="text-sm text-gray-300 animate-pulse">💰 Carla, de Recife, lucrou US$97 com o Nexus em 4 dias.</div>
-              <div className="text-sm text-gray-300 animate-pulse">🚀 João, iniciante de Manaus, começou ontem e já tá no positivo.</div>
-              <div className="text-sm text-gray-300 animate-pulse">💸 Bruna, de São Paulo, ativou via PIX e viu o bônus cair na hora.</div>
-              <div className="text-sm text-gray-300 animate-pulse">⚡ Mais de 1.000 investidores Nexus ativos hoje!</div>
+              {socialProofs.map((proof) => (
+                <div key={proof.id} className="text-sm text-gray-300 animate-pulse">
+                  🎉 {proof.name}, de {proof.city}, {proof.action} {proof.time}.
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -628,7 +686,7 @@ export default function NexusQuiz() {
                     <div className="w-6 h-6 bg-[#00e0ff] rounded-full flex items-center justify-center flex-shrink-0">
                       <BarChart3 className="w-3 h-3 text-black" />
                     </div>
-                    <span className="text-gray-300">13 perguntas = até US$35 • 2 finais = US$40 total</span>
+                    <span className="text-gray-300">15 perguntas = US$40 total garantidos</span>
                   </div>
                 </div>
               </div>
@@ -852,8 +910,17 @@ export default function NexusQuiz() {
                 
                 <div className="text-center space-y-3">
                   <div className="text-lg">
-                    <span className="line-through opacity-70 text-xl">R$597</span>
-                    <span className="font-black text-4xl ml-3 drop-shadow-lg">R$297</span>
+                    <div className="bg-black/20 p-3 rounded-xl mb-3">
+                      <div className="text-sm font-bold mb-1">💰 DESCONTO ESPECIAL:</div>
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="line-through opacity-70 text-xl">R$597</span>
+                        <span className="text-red-600 font-black text-lg">-50%</span>
+                        <span className="font-black text-4xl drop-shadow-lg">R$297</span>
+                      </div>
+                      <div className="text-sm font-bold mt-1">
+                        🎯 ECONOMIA DE R$300 HOJE!
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="bg-black/20 p-4 rounded-xl">
